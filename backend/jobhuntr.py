@@ -44,9 +44,10 @@ def opportunity():
 @bp.route("/applications", methods=["POST"])
 def apply():
     if request.method == "POST":
-        date = request.form["date"]
-        opportunity_id = request.form["opportunity_id"]
-        status = request.form["status"]
+        request_json = request.get_json()
+        date = request_json["date"]
+        opportunity_id = request_json["opportunity_id"]
+        status = request_json["status"]
 
         error = None
         if not date:
@@ -59,8 +60,7 @@ def apply():
         if error is None:
             # create application
             application = Application(status=status)
-            application.save()
-            
+            application.save() 
             # create new process
             opportunity = Opportunity.objects.get(pk=opportunity_id)
             process = Process(date=date, document_type="application", document=application, parent = opportunity)
