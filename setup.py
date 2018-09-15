@@ -6,7 +6,7 @@ with io.open('README.md', 'rt', encoding='utf8') as f:
     readme = f.read()
 
 setup(
-    name='bankr',
+    name='managr',
     version='1.0.0',
     url='http://github.com/xChenny/bankr',
     license='MIT',
@@ -18,6 +18,7 @@ setup(
     include_package_data=True,
     zip_safe=False,
     install_requires=[
+        'flask_cors',
         'flask',
         'werkzeug',
         'mongoengine'
