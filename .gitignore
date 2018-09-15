@@ -1,0 +1,4 @@
+ENV/
+backend/__pycache__
+bankr.egg-info/
+db/
