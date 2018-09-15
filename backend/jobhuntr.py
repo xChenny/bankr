@@ -7,7 +7,7 @@ bp = Blueprint("jobhuntr", __name__, url_prefix="/jobhuntr")
 
 connect("jobs")
 
-@bp.route("/opportunities", methods=["GET", "POST"])
+@bp.route("/opportunities", methods=["GET", "POST", "DELETE"])
 def opportunity():
     if request.method == "GET":
         username = request.args.get("username")
@@ -38,7 +38,25 @@ def opportunity():
 
         return Response(error, 500)
 
-    return 'you can only create and query opportunities'
+    elif request.method == "DELETE":
+        request_json = request.get_json()
+        opportunity_id = request_json["id"]
+
+        error = None
+        if not opportunity_id:
+            error = "opportunity id must be defined"
+
+        if error is None:
+            # query Opportunity and delete all associated processes
+            opportunity = Opportunity.objects.get(pk=opportunity_id)
+            for process in opportunity.processes:
+                process.document.fetch().delete()
+            opportunity.delete()
+            return "opportunity and all processes have been deleted"
+
+        return Request(error, 500)
+
+    return 'you can only create, delete, and query opportunities'
 
 
 @bp.route("/applications", methods=["POST"])
