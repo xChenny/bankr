@@ -7,7 +7,7 @@ bp = Blueprint("jobhuntr", __name__, url_prefix="/jobhuntr")
 
 connect("jobs")
 
-@bp.route("/opportunities", methods=["GET", "POST", "DELETE"])
+@bp.route("/opportunities", methods=["GET", "POST", "PUT", "DELETE"])
 def opportunity():
     if request.method == "GET":
         username = request.args.get("username")
@@ -36,6 +36,26 @@ def opportunity():
 
             return 'successfully created opportunity'
 
+        return Response(error, 500)
+
+    elif request.method == "PUT":
+        request_json = request.get_json()
+        opportunity_id = request_json["id"]
+        data = request_json["data"]
+
+        error = None
+        if not opportunity_id:
+            error = "opportunity id must be defined"
+        
+        if error is None:
+            # check if there needs to be changes to opportunity and updates it
+            opportunity = Opportunity.objects.get(pk=opportunity_id)
+            for key in opportunity:
+                if data.get(key) and data[key] != opportunity[key]:
+                    opportunity[key] = data[key]
+            opportunity.save()
+            return 'successfully updated opportunity'
+        
         return Response(error, 500)
 
     elif request.method == "DELETE":
