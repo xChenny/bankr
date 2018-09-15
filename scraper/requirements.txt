@@ -1,0 +1,4 @@
+selenium
+nltk
+pandas
+numpy
