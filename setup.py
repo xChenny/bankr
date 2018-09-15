@@ -21,6 +21,8 @@ setup(
         'flask_cors',
         'flask',
         'werkzeug',
-        'mongoengine'
+        'mongoengine',
+        'matplotlib',
+        'mpld3'
     ],
 )

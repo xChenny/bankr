@@ -1,11 +1,21 @@
 from flask import request, Blueprint, Response
 from mongoengine import *
 from bson.objectid import ObjectId
-import json
+from backend.plot_gen import generate_city_plots
+import json, json_tricks
+
+import matplotlib.pyplot as plt, mpld3
 
 bp = Blueprint("jobhuntr", __name__, url_prefix="/jobhuntr")
 
 connect("jobs")
+
+@bp.route("/plot", methods=["GET"])
+def plot():
+    if request.method == "GET":
+        value = generate_city_plots()
+        my_json = json_tricks.dumps(value)
+        return my_json 
 
 @bp.route("/opportunities", methods=["GET", "POST", "PUT", "DELETE"])
 def opportunity():
