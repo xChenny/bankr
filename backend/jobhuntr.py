@@ -12,7 +12,7 @@ def opportunity():
     if request.method == "GET":
         username = request.args.get("username")
         opportunities = Opportunity.objects(applicant=username)
-        processes = [{ 'id': str(opportunity.id), 'company': opportunity.company, 'position': opportunity.position, 'processes': [{ "date": process.date, "document": str(process.document.fetch()), "type": process.document_type } for process in opportunity.processes]} for opportunity in opportunities]
+        processes = [{ 'id': str(opportunity.id), 'company': opportunity.company, 'position': opportunity.position, 'processes': [{ "date": process.date, "document": process.document.fetch().get_dict_representation(), "type": process.document_type } for process in opportunity.processes]} for opportunity in opportunities]
         return json.dumps(processes)
 
     elif request.method == "POST":
@@ -83,6 +83,10 @@ class Application(Document):
 
     def __str__(self):
         return str({"id": self.id, "status": self.status})
+
+    def get_dict_representation(self):
+        return {'id': str(self.id), 'status': self.status}
+
 
 class Process(EmbeddedDocument):
     date = StringField(required=True)
