@@ -2,6 +2,7 @@ from flask import request, Blueprint, Response, make_response
 from mongoengine import *
 from bson.objectid import ObjectId
 from backend.plot_gen import generate_city_average_salaries, generate_companies_with_most_listings
+from backend.col_compare import compare_offer
 import json 
 
 import matplotlib.pyplot as plt, mpld3
@@ -81,6 +82,18 @@ def generate_most_listings():
 
     else:
         return Response('you can only GET or POST from this method', 500)
+
+@bp.route("/generate_col_report", methods=["POST"])
+def generate_col():
+    if request.method == "POST":
+        request_json = request.get_json()
+
+        offer1 = request_json.get('offer1')
+        offer2 = request_json.get('offer2')
+
+        response = compare_offer(offer1, offer2)
+        return json.dumps(response)
+
 
 @bp.route("/opportunities", methods=["GET", "POST", "PUT", "DELETE"])
 def opportunity():
