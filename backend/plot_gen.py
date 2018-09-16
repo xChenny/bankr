@@ -24,7 +24,7 @@ def generate_city_average_salaries(city_name, offer_compensations=None, offer_de
     svg_name = './svg/{0}_avg_salary.svg'.format(snakecase_city_name)
     df = pd.read_csv(csv_location, delimiter='|')
 
-    fig, ax = plt.subplots(figsize=(10,5)) 
+    fig, ax = plt.subplots(figsize=(8,4)) 
     dd = pd.melt(df,id_vars=['position'],value_vars=['salaries'])
     figure = sns.boxplot(y='position', x='value', data=dd.loc[dd.position.isin(dd.position.value_counts().nlargest(5).keys())], orient="h")
     plt.title("Boxchart of Compensation vs. Role for Most Frequent Roles in {0} (Glassdoor)".format(city_name))
