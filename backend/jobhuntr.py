@@ -1,7 +1,7 @@
-from flask import request, Blueprint, Response
+from flask import request, Blueprint, Response, make_response
 from mongoengine import *
 from bson.objectid import ObjectId
-from backend.plot_gen import generate_city_plots
+from backend.plot_gen import generate_city_average_salaries, generate_companies_with_most_listings
 import json 
 
 import matplotlib.pyplot as plt, mpld3
@@ -10,8 +10,8 @@ bp = Blueprint("jobhuntr", __name__, url_prefix="/jobhuntr")
 
 connect("jobs")
 
-@bp.route("/plot", methods=["GET", "POST"])
-def plot():
+@bp.route("/generate_city_average_salaries", methods=["GET", "POST"])
+def generate_city_average():
     if request.method == "GET":
         location = request.args.get("location")
 
@@ -21,8 +21,9 @@ def plot():
             error = "location must be defined"
         
         if error is None:
-            value = generate_city_plots(location)
-            return Response(value)
+            value = generate_city_average_salaries(location)
+            response = Response(value)
+            return response
         return Response(error, 500)
 
     elif request.method == "POST":
@@ -39,12 +40,47 @@ def plot():
             offers = [Offer.objects.get(pk=offer_id) for offer_id in data]
             compensations = [offer.compensation for offer in offers]
             details = [str(offer.parent.fetch()) for offer in offers]
-            return Response(generate_city_plots(city_name=location, offer_compensations=compensations, offer_details=details))
+            return Response(generate_city_average_salaries(city_name=location, offer_compensations=compensations, offer_details=details))
         return Response(error, 500)
 
     else:
-        return Response('you can only GET from this method', 500)
+        return Response('you can only GET or POST from this method', 500)
 
+@bp.route("/generate_city_with_most_listings", methods=["GET", "POST"])
+def generate_most_listings():
+    if request.method == "GET":
+        location = request.args.get("location")
+
+        error = None
+        
+        if not location:
+            error = "location must be defined"
+        
+        if error is None:
+            value = generate_companies_with_most_listings(location)
+            response = Response(value)
+            return response
+        return Response(error, 500)
+
+    elif request.method == "POST":
+        request_json = request.get_json()
+
+        location = request_json.get("location")
+        data = request_json.get("data")
+
+        error = None
+        if not location:
+            error = "location must be defined"
+
+        if error is None:
+            offers = [Offer.objects.get(pk=offer_id) for offer_id in data]
+            compensations = [offer.compensation for offer in offers]
+            details = [str(offer.parent.fetch()) for offer in offers]
+            return Response(generate_companies_with_most_listings(city_name=location, offer_compensations=compensations, offer_details=details))
+        return Response(error, 500)
+
+    else:
+        return Response('you can only GET or POST from this method', 500)
 
 @bp.route("/opportunities", methods=["GET", "POST", "PUT", "DELETE"])
 def opportunity():
@@ -265,7 +301,7 @@ def offer():
 
         return Response(error, 500)
 
-    elif method.request == "DELETE":
+    elif request.method == "DELETE":
         request_json = request.get_json()
         offer_id = request_json.get("id")
 
@@ -274,7 +310,7 @@ def offer():
             error = "offer id is required"
 
         if error is None:
-            offer = Offer.objects.get(pk=interview_id)
+            offer = Offer.objects.get(pk=offer_id)
             opportunity = offer.parent.fetch()
             for process in opportunity.processes:
                 if process.document == offer:
