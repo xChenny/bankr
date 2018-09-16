@@ -2,7 +2,7 @@ from flask import request, Blueprint, Response
 from mongoengine import *
 from bson.objectid import ObjectId
 from backend.plot_gen import generate_city_plots
-import json, json_tricks
+import json 
 
 import matplotlib.pyplot as plt, mpld3
 
@@ -10,12 +10,41 @@ bp = Blueprint("jobhuntr", __name__, url_prefix="/jobhuntr")
 
 connect("jobs")
 
-@bp.route("/plot", methods=["GET"])
+@bp.route("/plot", methods=["GET", "POST"])
 def plot():
     if request.method == "GET":
-        value = generate_city_plots()
-        my_json = json_tricks.dumps(value)
-        return my_json 
+        location = request.args.get("location")
+
+        error = None
+        
+        if not location:
+            error = "location must be defined"
+        
+        if error is None:
+            value = generate_city_plots(location)
+            return Response(value)
+        return Response(error, 500)
+
+    elif request.method == "POST":
+        request_json = request.get_json()
+
+        location = request_json.get("location")
+        data = request_json.get("data")
+
+        error = None
+        if not location:
+            error = "location must be defined"
+
+        if error is None:
+            offers = [Offer.objects.get(pk=offer_id) for offer_id in data]
+            compensations = [offer.compensation for offer in offers]
+            details = [str(offer.parent.fetch()) for offer in offers]
+            return Response(generate_city_plots(city_name=location, offer_compensations=compensations, offer_details=details))
+        return Response(error, 500)
+
+    else:
+        return Response('you can only GET from this method', 500)
+
 
 @bp.route("/opportunities", methods=["GET", "POST", "PUT", "DELETE"])
 def opportunity():
@@ -202,6 +231,63 @@ def interview():
 
     else:
         return "you can only create and delete interviews at this time."
+
+@bp.route("/offers", methods=["POST", "DELETE"])
+def offer():
+    if request.method == "POST":
+        request_json = request.get_json()
+        data = request_json["data"]
+        
+        compensation = data.get("compensation")
+        date = data.get("date")
+        location = data.get("location")
+        opportunity_id = data.get("opportunity_id")
+
+        error = None
+        if not compensation:
+            error = "compensation is required"
+        elif not date:
+            error = "date is required"
+        elif not location:
+            error = "location is required"
+        elif not opportunity_id:
+            error = "opportunity id is required"
+
+        if error is None:
+            offer = Offer(compensation=compensation, location=location)
+            offer.save()
+            opportunity = Opportunity.objects.get(pk=opportunity_id)
+            opportunity.processes.append(Process(date=date, document=offer, document_type="offer", parent=opportunity))
+            opportunity.save()
+            offer.parent = opportunity
+            offer.save()
+            return("successfully created offer")
+
+        return Response(error, 500)
+
+    elif method.request == "DELETE":
+        request_json = request.get_json()
+        offer_id = request_json.get("id")
+
+        error = None
+        if not offer_id:
+            error = "offer id is required"
+
+        if error is None:
+            offer = Offer.objects.get(pk=interview_id)
+            opportunity = offer.parent.fetch()
+            for process in opportunity.processes:
+                if process.document == offer:
+                    opportunity.processes.remove(process)
+                    opportunity.save()
+                    offer.delete()
+                    return "Successfully deleted interivew and associated process"
+            return Response("Unable to find associated process", 500)
+
+        return Response(error, 500)
+
+    else:
+        return Request("you can only create and delete offers at this time.", 500)
         
 class Application(Document):
     parent = GenericLazyReferenceField()
@@ -223,6 +309,14 @@ class Interview(Document):
     def get_dict_representation(self):
         return { 'id': str(self.id), 'interviewer': self.interviewer, 'location': self.location, 'notes': self.notes, 'url': self.url }
 
+class Offer(Document):
+    compensation = LongField(required=True)
+    location = StringField(reuqired=True)
+    parent = GenericLazyReferenceField()
+
+    def get_dict_representation(self):
+        return { 'id': str(self.id), 'compensation': self.compensation, 'location': self.location }
+
 class Process(EmbeddedDocument):
     date = StringField(required=True)
     document = GenericLazyReferenceField(required=True)
@@ -235,3 +329,6 @@ class Opportunity(Document):
     description = StringField()
     position = StringField(required=True)
     processes = EmbeddedDocumentListField(document_type=Process)
+
+    def __str__(self):
+        return str(self.position) + " at " + str(self.company)
